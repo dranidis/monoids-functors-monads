@@ -1,5 +1,5 @@
 (ns monoids-functors-monads.core
-  (:require [clojure.string :as s]))
+ (:require [clojure.string :as s]))
 
 ;; https://marmelab.com/blog/2018/04/18/functional-programming-2-monoid.html
 

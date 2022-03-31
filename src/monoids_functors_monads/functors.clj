@@ -13,10 +13,10 @@
   (fmap [j f]))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(deftype Maybe [value]
+(defrecord Maybe [value]
   Functor
-  (fmap [_ f] (if (nil? value) 
-                (Maybe. nil) 
+  (fmap [_ f] (if (nil? value)
+                (Maybe. nil)
                 (Maybe. (f value)))))
 
 (def user {:name "Holmes" :address {:street "Baker Street" :number "221B"}})
@@ -33,7 +33,8 @@
     .value)
 
 (defmulti get-or-else (fn [m _] (class m)))
-(defmethod get-or-else Maybe [maybe default-value] (if (nil? (.value maybe)) default-value (.value maybe)))
+(defmethod get-or-else Maybe [maybe default-value]
+  (if (nil? (.value maybe)) default-value (.value maybe)))
 
 (-> (Maybe. homeless)
     (fmap :address)
@@ -53,11 +54,11 @@
 
 ;;;;;;;;;;
 
-(deftype Left [value]
+(defrecord Left [value]
   Functor
   (fmap [_ _] (Left. value)))
 
-(deftype Right [value]
+(defrecord Right [value]
   Functor
   (fmap [_ f] (Right. (f value))))
 
@@ -86,13 +87,19 @@
 (defmethod catch Right [m _] (Right. (.value m)))
 (defmethod catch Left [m f] (Right. (f (.value m))))
 
-(.value (catch (Right. "v") #(%)))
-(.value (catch (Left. (Exception. "The given email is invalid")) (fn [e] (.getMessage e))))
+(-> (Right. "v")
+    (catch #(%))
+    .value)
+
+(-> (Left. (Exception. "Invalid mail"))
+    (catch (fn [e] (.getMessage e)))
+    .value)
 
 (defn try-catch
   [fun]
-  (fn [value] (try (Right. (fun value))
-                   (catch Exception e (Left. e)))))
+  (fn [value]
+    (try (Right. (fun value))
+         (catch Exception e (Left. e)))))
 
 (def validate-email-try
   (try-catch (fn [value]
@@ -117,11 +124,13 @@
       (fmap (fn [v] (-> (validate-email-try v)
                         (catch (fn [e] (.getMessage e))))))))
 
-(.value (.value (validate-user {:first-name "John"
-                        :email "foo@example.com"})))
+(-> (validate-user {:first-name "John"
+                    :email "foo@example.com"})
+    .value
+    .value)
 
 (.value (.value (validate-user {:first-name "John"
-                        :email "foo@example"})))
+                                :email "foo@example"})))
 
 (.value (validate-user {:first-name "John"}))
 
@@ -212,7 +221,7 @@
 ;; Associativity
 (is (=
      (-> (Maybe. x) (chain f) (chain g) .value)
-     (-> (Maybe. x) (chain (fn [v] (-> (f v) (chain g))) ) .value)))
+     (-> (Maybe. x) (chain (fn [v] (-> (f v) (chain g)))) .value)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -229,7 +238,7 @@
 
 (defmethod chain Right [m f] (-> m (fmap f) flattenval))
 
-(defn either->maybe 
+(defn either->maybe
   [either]
   (-> either
       (catch (fn [e] nil))
@@ -267,7 +276,7 @@
   (if (nil? (.value maybe))
     (Left. "no value")
     ;; (Right. (flattenval maybe)) ;;; flattenval does not work
-    (Right. (.value maybe)))) 
+    (Right. (.value maybe))))
 
 (.value (maybe->either (Maybe. "some value")))
 (.value (maybe->either (Maybe. nil)))
@@ -334,8 +343,8 @@
 
 
 
-(deftype Circle [radius])
-;; (deftype Square [length width])
+(defrecord Circle [radius])
+;; (defrecord Square [length width])
 
 ;; ;; multimethod to calculate the area of a shape
 ;; (defmulti area class)

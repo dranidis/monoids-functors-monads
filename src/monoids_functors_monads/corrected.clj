@@ -4,13 +4,13 @@
   (fmap [j f]))
 
 
-;; (deftype Nothing
+;; (defrecord Nothing
 ;;          []
 ;;   Functor
 ;;   (fmap [_ _] (Nothing.)))
 
 
-(deftype Maybe [value]
+(defrecord Maybe [value]
   Functor
   (fmap [_ f] (if (nil? value)
                 (Maybe. nil)
@@ -37,18 +37,18 @@
 ;;   default-value)
 
 
-(deftype Right [value]
+(defrecord Right [value]
   Functor
   (fmap [_ f] (Right. (f value))))
 
-(deftype Left [value]
+(defrecord Left [value]
   Functor
   (fmap [_ _] (Left. value)))
 
 ;; catch
 
 (defmulti catch (fn [m _] (class m)))
-(defmethod catch Right [m _] (Right. (.value m)))
+(defmethod catch Right [m _] m)
 (defmethod catch Left [m f] (Right. (f (.value m))))
 
 ;; flatten
@@ -90,6 +90,8 @@
                  value
                  (throw (Exception. "Invalid mail"))))))
 
+(def user {:first-name "John"
+           :email "fooexample.com"})
 (defn parse-mail
   [user]
   (-> (Maybe. user)

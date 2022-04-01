@@ -30,79 +30,91 @@
   ;; resulting in a new monadic value:
   ;; (M a) (a -> (M b)) -> (M b)
   (bind [_ fun]
+    (println "v: " value)
     (if (nil? value)
       (Maybe. nil)
       (fun value))))
 
-(comment
 
-  (-> (Maybe. inc)
-      (fapply (Maybe. 1)))
+(-> (Maybe. inc)
+    (fapply (Maybe. 1)))
 
-  (-> (Maybe. inc)
-      (fapply (Maybe. nil)))
+(-> (Maybe. inc)
+    (fapply (Maybe. nil)))
 
-  (-> (Maybe. nil)
-      (fapply (Maybe. 1)))
+(-> (Maybe. nil)
+    (fapply (Maybe. 1)))
 
-  (-> (Maybe. 0)
-      (fmap inc))
+(-> (Maybe. 0)
+    (fmap inc))
 
-  (-> (Maybe. nil)
-      (fmap inc))
-
-
-  (-> (Maybe. (fn [a] (fn [b] (+ a b))))
-      (fapply (Maybe. 1))
-      (fapply (Maybe. 2)))
-
-  (-> (Maybe. (fn [a] (fn [b] (+ a b))))
-      (fapply (Maybe. 1))
-      (fapply (Maybe. 2)))
-
-  (-> (Maybe. (fn [a] (fn [b] (+ a b))))
-      (fapply (Maybe. nil))
-      (fapply (Maybe. 2)))
+(-> (Maybe. nil)
+    (fmap inc))
 
 
-  (-> (Maybe. (fn [a] (fn [b] (+ a b))))
-      (fapply (Maybe. 1))
-      (fapply (Maybe. nil)))
+(-> (Maybe. (fn [a] (fn [b] (+ a b))))
+    (fapply (Maybe. 1))
+    (fapply (Maybe. 2)))
 
-  (defn half [x]
-    (if (even? x)
-      (Maybe. (quot x 2))
-      (Maybe. nil)))
+(-> (Maybe. (fn [a] (fn [b] (+ a b))))
+    (fapply (Maybe. 1))
+    (fapply (Maybe. 2)))
 
-  (-> (Maybe. 20)
-      (bind half)
-      (bind half)
-      (bind half)
-      (bind half))
-
-  (defn add [a b]
-    (if (or (nil? b) (nil? a))
-      (Maybe. nil)
-      (Maybe. (+ a b))))
-
-  (-> (Maybe. 0)
-      (bind #(add % 10))
-      (bind half)
-      (bind #(add % 20)))
+(-> (Maybe. (fn [a] (fn [b] (+ a b))))
+    (fapply (Maybe. nil))
+    (fapply (Maybe. 2)))
 
 
-  (defn div [a b] (if (= 0 b) (Maybe. nil) (Maybe. (/ a b))))
+(-> (Maybe. (fn [a] (fn [b] (+ a b))))
+    (fapply (Maybe. 1))
+    (fapply (Maybe. nil)))
 
-  (defn chainable-division [mx my]
-    (-> mx (bind (fn [x]
-                   (-> my (bind (fn [y]
-                                  (div x y))))))))
+(defn half [x]
+  (if (even? x)
+    (Maybe. (quot x 2))
+    (Maybe. nil)))
 
-  (-> (chainable-division (Maybe. 2) (Maybe. 4))
-      (chainable-division (Maybe. 0))
-      (chainable-division (Maybe. 3)))
-  ;
-  )
+(-> (Maybe. 20)
+    (bind half)
+    (bind half)
+    (bind half)
+    (bind half))
+
+(defn add [a b]
+  (if (or (nil? b) (nil? a))
+    (Maybe. nil)
+    (Maybe. (+ a b))))
+
+(-> (Maybe. 0)
+    (bind #(add % 10))
+    (bind half)
+    (bind #(add % 20)))
+
+
+(defn div [a b] (if (= 0 b) (Maybe. nil) (Maybe. (/ a b))))
+
+(defn chainable-division [mx my]
+  (bind mx (fn [x]
+             (bind my (fn [y]
+                        (div x y))))))
+
+(-> (chainable-division (Maybe. 2) (Maybe. 4))
+    (chainable-division (Maybe. 0))
+    (chainable-division (Maybe. 3)))
+
+(defn lift-2 [fun]
+  (fn [mx my]
+    (bind mx (fn [x]
+               (bind my (fn [y]
+                          (Maybe. (fun x y))))))))
+
+(def chainable-add (lift-2 +))
+
+(-> (chainable-add (Maybe. 3) (Maybe. 4))
+    (chainable-add (Maybe. 5))
+    (chainable-add (Maybe. 4))
+    ((lift-2 *) (Maybe. 3)))
+
 
 ;; identity
 (= (-> (Maybe. identity) (fapply (Maybe. 1)))

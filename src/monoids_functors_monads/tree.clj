@@ -77,7 +77,6 @@
    :post [(s/valid? ::tree %)]}
   (first (fapply (tree-relabel-state tree) 0)))
 
-
 ;; execution
 
 (def tree
